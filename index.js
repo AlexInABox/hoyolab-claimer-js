@@ -1,11 +1,9 @@
-const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
-const argparse = require("argparse");
-const { DateTime } = require("luxon");
 const axios = require("axios");
-const tough = require("tough-cookie");
 var config = require("./config.json");
+var cookie;
+
 
 const VER = "0.0.1";
 const UPDATE_CHANNEL = "https://github.com/alexinabox/hoyolab-claimer-js/releases/latest";
@@ -25,36 +23,43 @@ const config_params = [
     "DOMAIN_NAME",
 ];
 
-try {
-    config = JSON.parse(fs.readFileSync(path.join("./config.json"), "utf8"));
-    config_params.forEach((param) => {
-        if (!(param in config)) {
-            throw new Error(`ERROR: Broken config file, ${param} not found`);
-        }
-    });
-} catch (e) {
-    console.log(e);
-    console.log("Config not found/corrupted! Making default config...");
-    config = {
-        COOKIE: "",
-        SERVER_UTC: 8,
-        DELAY_MINUTE: 0,
-        RANDOMIZE: false,
-        RANDOM_RANGE: 3600,
-        ACT_ID: "e202102251931481",
-        DOMAIN_NAME: ".mihoyo.com"
-    };
-    config_file = fs.createWriteStream(path.join("./config.json"), { flags: "w" });
-    config_file.write(JSON.stringify(config));
-    config_file.close();
+async function checkConfig() {
+
+    try {
+        config = JSON.parse(fs.readFileSync(path.join("./config.json"), "utf8"));
+        config_params.forEach((param) => {
+            if (!(param in config)) {
+                throw new Error(`ERROR: Broken config file, ${param} not found`);
+            }
+        });
+    } catch (e) {
+        console.log(e);
+        console.log("Config not found/corrupted! Making default config...");
+        config = {
+            COOKIE: [],
+            SERVER_UTC: 8,
+            DELAY_MINUTE: 0,
+            RANDOMIZE: false,
+            RANDOM_RANGE: 3600,
+            ACT_ID: "e202102251931481",
+            DOMAIN_NAME: ".mihoyo.com"
+        };
+        config_file = fs.createWriteStream(path.join("./config.json"), { flags: "w" });
+        await config_file.write(JSON.stringify(config, null, 4));
+        config_file.close();
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return;
 }
-// END SETUP CONFIG
+// END SETUP CONFIG 
 
 // GET COOKIE
-const cookie = config.COOKIE;
-if (cookie == "") {
-    console.log("ERROR: Cookie not found! Please fill in your cookie in config.json");
-    process.exit(1);
+function getCookie() {
+    cookie = config.COOKIE;
+    if (cookie == "") {
+        console.log("ERROR: Cookie not found! Please fill in your cookie in config.json");
+        process.exit(1);
+    }
 }
 // END GET COOKIE
 
@@ -130,10 +135,11 @@ function claimReward(cookie) {
 
 
 // MAIN
-function main() {
+async function main() {
     console.log(`Hoyolab Daily Claimer v${VER}`);
     console.log(`Checking for updates...`);
-    axios.get(UPDATE_CHANNEL)
+
+    await axios.get(UPDATE_CHANNEL)
         .then(response => {
             const latest = response.request.res.responseUrl;
             const latest_ver = latest.split('/').pop();
@@ -149,29 +155,33 @@ function main() {
             console.log(error);
         });
 
+    getCookie();
 
 
-    isClaimed(cookie)
-        .then(resp => {
-            if (resp) {
-                console.log('Already claimed reward for today!');
-                log.write('Already claimed reward for today!\n');
-                process.exit(0);
-            } else {
-                claimReward(cookieJar)
-                    .then(resp => {
-                        if (resp.retcode == 0) {
-                            console.log('Successfully claimed reward!');
-                            log.write('Successfully claimed reward!\n');
-                            process.exit(0);
-                        } else {
-                            console.log('ERROR: Failed to claim reward!');
-                            log.write('ERROR: Failed to claim reward!\n');
-                            process.exit(1);
-                        }
-                    });
-            }
-        });
+    for (let i = 0; i < cookie.length; i++) {
+        isClaimed(cookie[i])
+            .then(resp => {
+                if (resp) {
+                    console.log('Aleady claimed reward for account ' + (i + 1) + ' today!');
+                    log.write('Already claimed reward for account ' + (i + 1) + 'today!\n');
+                    return;
+                } else {
+                    claimReward(cookie[i])
+                        .then(resp => {
+                            if (resp.retcode == 0) {
+                                console.log('Successfully claimed reward!');
+                                log.write('Successfully claimed reward!\n');
+                                return;
+                            } else {
+                                console.log('ERROR: Failed to claim reward!');
+                                log.write('ERROR: Failed to claim reward!\n');
+                                return;
+                            }
+                        });
+                }
+            });
+    }
+
 }
 
 main();

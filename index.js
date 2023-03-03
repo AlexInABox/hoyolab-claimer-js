@@ -239,7 +239,7 @@ async function sendWebhookFail(i) {
 }
 
 // END MAIN
-setInterval(main, 30000);
+setInterval(main, 43200000); // 12 hours
 main().catch(console.error);
 
 

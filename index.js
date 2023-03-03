@@ -5,7 +5,7 @@ var config = require("./config.json");
 var cookie;
 
 
-const VER = "0.0.1";
+const VER = "0.1.4";
 const UPDATE_CHANNEL = "https://github.com/alexinabox/hoyolab-claimer-js/releases/latest";
 
 // SETUP LOGGING
@@ -164,6 +164,7 @@ async function main() {
                 if (resp) {
                     console.log('Aleady claimed reward for account ' + (i + 1) + ' today!');
                     log.write('Already claimed reward for account ' + (i + 1) + 'today!\n');
+                    sendWebhookFail(i);
                     return;
                 } else {
                     claimReward(cookie[i])
@@ -171,10 +172,12 @@ async function main() {
                             if (resp.retcode == 0) {
                                 console.log('Successfully claimed reward!');
                                 log.write('Successfully claimed reward!\n');
+                                sendWebhookSuccess(i);
                                 return;
                             } else {
                                 console.log('ERROR: Failed to claim reward!');
                                 log.write('ERROR: Failed to claim reward!\n');
+                                sendWebhookFail(i);
                                 return;
                             }
                         });
@@ -184,7 +187,60 @@ async function main() {
 
 }
 
-main();
+//Discord Webhook event announcer
+
+async function sendWebhookSuccess(i) {
+    fetch(config.WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            "content": null,
+            "embeds": [
+                {
+                    "title": "Hoyolab Daily Claimer",
+                    "description": "Daily check-in reward claimed for account " + (i + 1) + "!",
+                    "color": 1158948,
+                    "footer": {
+                        "text": "Hoyolab Daily Claimer v" + VER + " | AlexInABox"
+                    },
+                    "timestamp": new Date()
+                }
+            ],
+            "attachments": []
+        }),
+    });
+}
+
+
+async function sendWebhookFail(i) {
+    fetch(config.WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            "content": null,
+            "embeds": [
+                {
+                    "title": "Hoyolab Daily Claimer",
+                    "description": "Failed to claim daily check-in reward for account " + (i + 1) + "!",
+                    "color": 13046547,
+                    "footer": {
+                        "text": "Hoyolab Daily Claimer v" + VER + " | AlexInABox"
+                    },
+                    "timestamp": new Date()
+                }
+            ],
+            "attachments": []
+        }),
+    });
+}
+
+// END MAIN
+setInterval(main, 30000);
+main().catch(console.error);
 
 
 

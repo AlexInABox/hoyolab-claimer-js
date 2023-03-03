@@ -34,6 +34,7 @@ async function checkConfig() {
         });
     } catch (e) {
         console.log(e);
+        sendErrorToDiscord(e);
         console.log("Config not found/corrupted! Making default config...");
         config = {
             COOKIE: [],
@@ -153,6 +154,7 @@ async function main() {
         .catch(error => {
             console.log(`ERROR: Failed to check for updates`);
             console.log(error);
+            sendErrorToDiscord(error);
         });
 
     getCookie();
@@ -239,9 +241,35 @@ async function sendWebhookFail(i) {
 }
 
 // END MAIN
-setInterval(main, 43200000); // 12 hours
-main().catch(console.error);
+//Repeating main function every 4hours
+setInterval(main, 14401000);
+main().catch(e => sendErrorToDiscord(e));
 
+//Error handling
+
+async function sendErrorToDiscord(e) {
+    fetch(config.WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            "content": null,
+            "embeds": [
+                {
+                    "title": "Hoyolab Daily Claimer",
+                    "description": "ERROR: " + e,
+                    "color": 13046547,
+                    "footer": {
+                        "text": "Hoyolab Daily Claimer v" + VER + " | AlexInABox"
+                    },
+                    "timestamp": new Date()
+                }
+            ],
+            "attachments": []
+        }),
+    });
+}
 
 
 

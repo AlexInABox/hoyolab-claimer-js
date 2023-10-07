@@ -1,8 +1,9 @@
 # Use a small Node.js image as the base
-FROM node:alpine
+FROM node:slim
 
 # Set the timezone to UTC+8 (Asia/Shanghai)
 ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Set the working directory to /app
 WORKDIR /app

@@ -1,24 +1,15 @@
 {
   "name": "hoyolab-daily-claimer-js",
-  "version": "0.1.0",
-  "description": "",
+  "version": "0.1.1",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/AlexInABox/hoyolab-claimer-js.git"
-  },
-  "keywords": [
-    "genshin",
-    "hoyolab",
-    "auto-claim"
-  ],
   "author": "alexinabox",
-  "license": "GPL-3.0",
-  "bugs": {
-    "url": "https://github.com/AlexInABox/hoyolab-claimer-js/issues"
+  "license": "MIT",
+  "scripts": {
+    "start": "node hac.js"
   },
-  "homepage": "https://github.com/AlexInABox/hoyolab-claimer-js#readme"
+  "dependencies": {
+    "node-fetch": "2.6.12",
+    "puppeteer": "^20.8.2",
+    "tz-offset": "^0.0.2"
+  }
 }

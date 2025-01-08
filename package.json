@@ -5,9 +5,10 @@
   "author": "alexinabox",
   "license": "MIT",
   "scripts": {
-    "start": "node hac.js"
+    "start": "node index.js"
   },
   "dependencies": {
+    "discord.js": "^14.17.2",
     "node-fetch": "2.6.12",
     "puppeteer": "^20.8.2",
     "tz-offset": "^0.0.2"

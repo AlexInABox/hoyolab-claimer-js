@@ -19,7 +19,6 @@ client.once('ready', () => {
 });
 
 client.on('messageCreate', async (message) => {
-    if (message.author.bot) return; // Ignore bot messages
     if (message.channel.id === CHANNEL_ID) {
         // Use regex to find all codes (i.e., all occurrences of code=xxxx)
         const codeRegex = /code=([A-Za-z0-9]+)/g; // "g" flag for global search

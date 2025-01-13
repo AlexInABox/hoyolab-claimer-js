@@ -72,18 +72,14 @@ async function main() {
         } catch (error) {
             console.log(error);
         }
+
+        // Wait before continuing
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     }
 }
 
 async function claimDailyReward(cookie) {
-    var alreadyClaimed = await alreadyClaimedDaily(cookie);
-    if (alreadyClaimed == -1) {
-        console.log("cookie or account seems to be invalid");
-        return -1;
-    } else if (alreadyClaimed) {
-        return 0;
-    }
-
+    const maxRetries = 5;
     const dailyRewardURL = "https://sg-hk4e-api.hoyolab.com/event/sol/sign?act_id=" + config.ACT_ID;
     const dailyRewardHeaders = {
         'Accept': 'application/json, text/plain, */*',
@@ -97,40 +93,81 @@ async function claimDailyReward(cookie) {
         'Sec-Ch-Ua': '"Chromium";v="116", "Not)A;Brand";v="24", "Opera GX";v="102"',
         'Sec-Ch-Ua-Mobile': '?0',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0S'
-    }
+    };
 
+    const alreadyClaimed = await alreadyClaimedDaily(cookie);
 
-    const response = await fetch(dailyRewardURL, { headers: dailyRewardHeaders, method: 'POST' });
-    const responseData = await response.json();
-
-    if (responseData.message == "OK") {
-        console.log("claim success");
-        return 1;
-    }
-    else {
-        console.log("claim failed with message: " + responseData.message);
+    if (alreadyClaimed === -1) {
+        console.log("Cookie or account seems to be invalid.");
         return -1;
+    } else if (alreadyClaimed) {
+        console.log("Reward already claimed.");
+        return 0;
     }
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Attempt ${attempt} to claim daily reward...`);
+            const response = await fetch(dailyRewardURL, { headers: dailyRewardHeaders, method: 'POST' });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const responseData = await response.json();
+
+            if (responseData.message === "OK") {
+                console.log("Claim success.");
+                return 1;
+            } else {
+                console.log(`Claim failed with message: ${responseData.message}`);
+                return -1;
+            }
+        } catch (error) {
+            console.log(`Attempt ${attempt} failed: ${error.message}`);
+            if (attempt === maxRetries) {
+                console.error("Max retries reached. Returning failure...");
+                return -1;
+            }
+            // Wait before retrying (optional)
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+    }
+
 }
 
 async function alreadyClaimedDaily(cookie) {
-    try {
+    const dailyRewardURL = "https://sg-hk4e-api.hoyolab.com/event/sol/resign_info?act_id=" + config.ACT_ID;
+    const dailyRewardHeaders = {
+        'Cookie': cookie,
+    };
+    const maxRetries = 5;
 
-        const dailyRewardURL = "https://sg-hk4e-api.hoyolab.com/event/sol/resign_info?act_id=" + config.ACT_ID;
-        const dailyRewardHeaders = {
-            'Cookie': cookie
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Attempt ${attempt} to fetch daily reward status...`);
+            const response = await fetch(dailyRewardURL, { headers: dailyRewardHeaders });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const responseData = await response.json();
+            console.log("Already claimed: " + responseData.data.signed);
+
+            return responseData.data.signed;
+        } catch (error) {
+            console.log(`Attempt ${attempt} failed: ${error.message}`);
+            if (attempt === maxRetries) {
+                console.error("Max retries reached. Returning failure...");
+                return -1;
+            }
+            // Wait before retrying (optional)
+            await new Promise((resolve) => setTimeout(resolve, 1000));
         }
-
-        const response = await fetch(dailyRewardURL, { headers: dailyRewardHeaders });
-        const responseData = await response.json();
-        console.log("already claimed: " + responseData.data.signed);
-
-        return responseData.data.signed;
-    } catch (error) {
-        console.log(error);
-        return -1;
     }
 }
+
 
 async function claimMakeUpMissions(cookie) {
     const makeUpMissionsURL = "https://sg-hk4e-api.hoyolab.com/event/sol/task/award?lang=en-us";

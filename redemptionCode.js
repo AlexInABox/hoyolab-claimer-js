@@ -34,8 +34,8 @@ async function main(redemptionCode) {
 }
 
 async function claimRedemptionCode(cookie, uid, region, redemptionCode) {
+    const maxRetries = 5;
     const redemptionUrl = `https://public-operation-hk4e.hoyoverse.com/common/apicdkey/api/webExchangeCdkey?uid=${uid}&region=${region}&lang=en&cdkey=${redemptionCode}&game_biz=hk4e_global&sLangKey=en-us`;
-    console.log(redemptionUrl);
     const redemptionHeaders = {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Encoding': 'gzip, deflate, br',
@@ -48,24 +48,41 @@ async function claimRedemptionCode(cookie, uid, region, redemptionCode) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36'
     };
 
-    try {
-        const response = await fetch(redemptionUrl, { headers: redemptionHeaders, method: 'GET' });
-        const responseData = await response.json();
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Attempt ${attempt} to redeem code...`);
+            console.log(redemptionUrl);
 
-        if (responseData.message === "OK") {
-            console.log("redemption success");
-            return 1;
-        } else if (responseData.message === "Already Claimed") {
-            return 0;
-        } else {
-            console.log(`redemption failed with message: ${responseData.message}`);
-            return -1;
+            const response = await fetch(redemptionUrl, { headers: redemptionHeaders, method: 'GET' });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const responseData = await response.json();
+
+            if (responseData.message === "OK") {
+                console.log("Redemption success.");
+                return 1;
+            } else if (responseData.message === "Already Claimed") {
+                console.log("Redemption code already claimed.");
+                return 0;
+            } else {
+                console.log(`Redemption failed with message: ${responseData.message}`);
+                return -1;
+            }
+        } catch (error) {
+            console.log(`Attempt ${attempt} failed: ${error.message}`);
+            if (attempt === maxRetries) {
+                console.error("Max retries reached. Returning failure...");
+                return -1;
+            }
+            // Wait before retrying (optional)
+            await new Promise((resolve) => setTimeout(resolve, 1000));
         }
-    } catch (error) {
-        console.error(`Error while redeeming: ${error.message}`);
-        return -1;
     }
 }
+
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
